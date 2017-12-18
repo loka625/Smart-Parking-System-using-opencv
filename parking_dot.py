@@ -1,27 +1,26 @@
-import yaml #to read parking lot positions, yaml file package is used(the saved file format of parking lot positions is just yaml format.)
+import yaml #o read parking lot positions, yaml file package is used(the saved file format of parking lot positions is just yaml format.)
 import numpy as np #for variable array, numpy package is used.
 import cv2 #opencv package is used for frame processing.
 import webbrowser
 fn = "WhatsApp Video 2017-12-09 at 8.07.15 PM.mp4" #if user wants to use video, then user sets video file name.
 
-fn_yaml = "parkSquare2.yml" #set the parking lot positions file name.
-fn_out = "output4.avi" #if user saves the output of detection for parking status, then user sets output video file name.
-config = {'save_video': False,#o save output video
-          'text_overlay': True, # display text in screeen
+fn_yaml = "parkSquare2.yml"#set the parking lot positions file name.
+fn_out = "output4.avi"#if user saves the output of detection for parking status, then user sets output video file name
+config = {'save_video': False, #to save output video
+          'text_overlay': True,# display text in screeen
           'parking_overlay': True, #when user use video, shows the frame number as text in screen
-          'parking_id_ove'
-          'rlay': True, # to show the parking lot status
-          'parking_detection': True, #detect parking status
-          'motion_detection': False, #detect moving vehicle
-          'pedestrian_detction': False, # detect human and others
-          'min_area_motion_contour': 150, #constant threshold for vehicle detection
+          'parking_id_overlay': True,# to show the parking lot status
+          'parking_detection': True,#detect parking status
+          'motion_detection': False,#detect moving vehicle
+          'pedestrian_detction': False,# detect human and others
+          'min_area_motion_contour': 150,#constant threshold for vehicle detection
           'park_laplacian_th': 2.5, #constant threshold for frame processing
-          'park_sec_to_wait': 5, #overlay delay time
-          'start_frame': 0}  # 35000 video start frame number
+          'park_sec_to_wait': 5,#overlay delay time
+          'start_frame': 0}  # video start frame number
 
 # Set capture device or file
 cap = cv2.VideoCapture(1)
-video_info = {'fps': cap.get(cv2.CAP_PROP_FPS), #
+video_info = {'fps': cap.get(cv2.CAP_PROP_FPS), ##\ video setting:frame width, height, frames per seconds
               'width': int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
               'height': int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
               'fourcc': cap.get(cv2.CAP_PROP_FOURCC),
@@ -31,7 +30,7 @@ cap.set(cv2.CAP_PROP_POS_FRAMES, config['start_frame'])  # jump to frame
 # Define the codec and create VideoWriter object
 if config['save_video']:
     fourcc = cv2.VideoWriter_fourcc('C', 'R', 'A',
-                                    'M')  # options: ('P','I','M','1'), ('D','I','V','X'), ('M','J','P','G'), ('X','V','I','D')
+                                    'M')  # options: ('P','I','M','1'), ('D','I','V','X'), ('M','J','P','G'), ('X','V','I','D') #video formats
     out = cv2.VideoWriter(fn_out, -1, 25.0,  # video_info['fps'],
                           (video_info['width'], video_info['height']))
 
@@ -189,12 +188,7 @@ while (cap.isOpened()):
             out.write(frame_out)
 
             # Display video
-    frame_out=np.zeros(frame_out.shape)
-    cv2.putText(frame_out, str(available_num) + ' spots are available now', (5, 230), cv2.FONT_HERSHEY_SIMPLEX,
-                1.3, (0, 255, 255), 5, cv2.LINE_AA)
-    frameout=cv2.resize(frame_out,(1600,900))
-    cv2.imshow('frame', frameout)
-
+    cv2.imshow('frame', frame_out)
     # cv2.imshow('background mask', bw)
     k = cv2.waitKey(1)
     if k == ord('q'):
@@ -207,4 +201,3 @@ while (cap.isOpened()):
 cap.release()
 if config['save_video']: out.release()
 cv2.destroyAllWindows()
-
