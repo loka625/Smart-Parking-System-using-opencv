@@ -195,11 +195,11 @@ while (cap.isOpened()):
         if video_cur_frame % 35 == 0:  # take every 30 frames
             out.write(frame_out)
 
-            # Display video
+            # Display video 
     frame_out=np.zeros(frame_out.shape)
     cv2.putText(frame_out, str(available_num) + ' spots are available now', (5, 230), cv2.FONT_HERSHEY_SIMPLEX,
                 1.3, (0, 255, 255), 5, cv2.LINE_AA)
-    frameout=cv2.resize(frame_out,(1600,900))
+    frameout=cv2.resize(frame_out,(1600,900))# The frame is resized to display the counter of empty spots
     cv2.imshow('frame', frameout)
 
     # cv2.imshow('background mask', bw)
