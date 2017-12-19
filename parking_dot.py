@@ -1,3 +1,8 @@
+''' This program detects the entry and exit of cars in the parking spaces in a parking lot. It uses the yaml file included to detect 
+the corners and draw contours based on which a console is displayed showing the parking lot where the masked rectangles change colour
+from green to red if a car is detected and shows the number of empty parking spots 
+
+'''
 import yaml #o read parking lot positions, yaml file package is used(the saved file format of parking lot positions is just yaml format.)
 import numpy as np #for variable array, numpy package is used.
 import cv2 #opencv package is used for frame processing.
