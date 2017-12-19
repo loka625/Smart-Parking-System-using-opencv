@@ -1,3 +1,10 @@
+'''This program detects the entry and exit of cars in the parking lot and uses the yaml file include to
+draw contours based on the co ordinates and displays a console with the number of parking spots empty as in the #display video section 
+where the frame is resized to display only the empty spots available.
+'''
+
+
+
 import yaml #to read parking lot positions, yaml file package is used(the saved file format of parking lot positions is just yaml format.)
 import numpy as np #for variable array, numpy package is used.
 import cv2 #opencv package is used for frame processing.
