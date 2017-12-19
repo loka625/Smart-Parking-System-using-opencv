@@ -1,38 +1,37 @@
-'''This program detects the entry and exit of cars in the parking lot and uses the yaml file include to
-draw contours based on the co ordinates and displays a console with the number of parking spots empty as in the #display video section 
-where the frame is resized to display only the empty spots available.
-'''
+''' This program detects the entry and exit of cars in the parkingspaces in a parking lot.
+It uses the yaml file included to detect the corners and draw contours based on which a console is displayed showing
+the parking lot where the masked rectangles change colour from green to red if a car is detected and shows the number
+of empty parking spots '''
 
 
-
-import yaml #to read parking lot positions, yaml file package is used(the saved file format of parking lot positions is just yaml format.)
-import numpy as np #for variable array, numpy package is used.
-import cv2 #opencv package is used for frame processing.
+import yaml
+import numpy as np
+import cv2
 import webbrowser
-fn = "WhatsApp Video 2017-12-09 at 8.07.15 PM.mp4" #if user wants to use video, then user sets video file name.
-
-fn_yaml = "parkSquare2.yml" #set the parking lot positions file name.
-fn_out = "output4.avi" #if user saves the output of detection for parking status, then user sets output video file name.
-config = {'save_video': False,#o save output video
-          'text_overlay': True, # display text in screeen
-          'parking_overlay': True, #when user use video, shows the frame number as text in screen
-          'parking_id_ove'
-          'rlay': True, # to show the parking lot status
-          'parking_detection': True, #detect parking status
-          'motion_detection': False, #detect moving vehicle
-          'pedestrian_detction': False, # detect human and others
-          'min_area_motion_contour': 150, #constant threshold for vehicle detection
-          'park_laplacian_th': 2.5, #constant threshold for frame processing
-          'park_sec_to_wait': 5, #overlay delay time
-          'start_frame': 0}  # 35000 video start frame number
+fn = "WhatsApp Video 2017-12-09 at 8.07.15 PM.mp4"
+# parking lot position data file
+fn_yaml = "parkSquare2.yml"
+# output vidoe filename
+fn_out = "output4.avi"
+config = {'save_video': False,# flag for save video file
+          'text_overlay': True,# display text for parking lot status
+          'parking_overlay': True,#displaying for parking status
+          'parking_id_overlay': True,# parking lot status
+          'parking_detection': True,# parking or no parking detction
+          'motion_detection': False,# car detection
+          'pedestrian_detction': False,#human or other detection
+          'min_area_motion_contour': 150,# threshold for detection of vehicle
+          'park_laplacian_th': 2.5,# thresohold for parking status
+          'park_sec_to_wait': 5,# delay time
+          'start_frame': 0}  # first frame position
 
 # Set capture device or file
 cap = cv2.VideoCapture(1)
-video_info = {'fps': cap.get(cv2.CAP_PROP_FPS), #
-              'width': int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-              'height': int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-              'fourcc': cap.get(cv2.CAP_PROP_FOURCC),
-              'num_of_frames': int(cap.get(cv2.CAP_PROP_FRAME_COUNT))}
+video_info = {'fps': cap.get(cv2.CAP_PROP_FPS),# frame per a second
+              'width': int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),# frame width
+              'height': int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),# frame height
+              'fourcc': cap.get(cv2.CAP_PROP_FOURCC),# format of video compression
+              'num_of_frames': int(cap.get(cv2.CAP_PROP_FRAME_COUNT))}# the number of frames
 cap.set(cv2.CAP_PROP_POS_FRAMES, config['start_frame'])  # jump to frame
 
 # Define the codec and create VideoWriter object
@@ -55,30 +54,33 @@ if config['motion_detection']:
 # Read YAML data (parking space polygons)
 with open(fn_yaml, 'r') as stream:
     parking_data = yaml.load(stream)
+# detection of parking contour, bound rectagle of each parking, parking mask
 parking_contours = []
 parking_bounding_rects = []
 parking_mask = []
+#read parking postion data from parking data
 for park in parking_data:
     points = np.array(park['points'])
     rect = cv2.boundingRect(points)
     points_shifted = points.copy()
     points_shifted[:, 0] = points[:, 0] - rect[0]  # shift contour to roi
-    points_shifted[:, 1] = points[:, 1] - rect[1]
+    points_shifted[:, 1] = points[:, 1] - rect[1]  # shift contour to roi
     parking_contours.append(points)
     parking_bounding_rects.append(rect)
     mask = cv2.drawContours(np.zeros((rect[3], rect[2]), dtype=np.uint8), [points_shifted], contourIdx=-1,
                             color=255, thickness=-1, lineType=cv2.LINE_8)
     mask = mask == 255
     parking_mask.append(mask)
-
+# intialize of parking status
 kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))  # morphological kernel
 # kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(13,13)) # morphological kernel
 kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 19))
 parking_status = [False] * len(parking_data)
 parking_buffer = [None] * len(parking_data)
-
+# parking status updating in real time
 while (cap.isOpened()):
     # Read frame-by-frame
+    # captureing each frame
     video_cur_pos = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0  # Current position of the video file in seconds
     video_cur_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)  # Index of the frame to be decoded/captured next
     ret, frame = cap.read()
@@ -88,42 +90,45 @@ while (cap.isOpened()):
 
     # frame_gray = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2GRAY)
     # Background Subtraction
-    frame_blur = cv2.GaussianBlur(frame.copy(), (5, 5), 3)
-    frame_gray = cv2.cvtColor(frame_blur, cv2.COLOR_BGR2GRAY)
-    frame_out = frame.copy()
+    frame_blur = cv2.GaussianBlur(frame.copy(), (5, 5), 3)# apply gausion blur to given frame
+    frame_gray = cv2.cvtColor(frame_blur, cv2.COLOR_BGR2GRAY)# convert color image into gray image
+    frame_out = frame.copy()# output frame
     #cv2.imshow('frame', frame_out)
     # cv2.imshow('background mask', bw)
     #k = cv2.waitKey(1)
-    # Draw Overlay
+    # Draw Overlay; display frame number on screen
     if config['text_overlay']:
         str_on_frame = "%d/%d" % (video_cur_frame, video_info['num_of_frames'])
         # cv2.putText(frame_out, str_on_frame, (5, 30), cv2.FONT_HERSHEY_SIMPLEX,
         #             0.8, (0, 255, 255), 2, cv2.LINE_AA)
 
     if config['motion_detection']:
+        # apply blur
         fgmask = fgbg.apply(frame_blur)
-        bw = np.uint8(fgmask == 255) * 255
-        bw = cv2.erode(bw, kernel_erode, iterations=1)
-        bw = cv2.dilate(bw, kernel_dilate, iterations=1)
+        bw = np.uint8(fgmask == 255) * 255# binarization
+        bw = cv2.erode(bw, kernel_erode, iterations=1)# image erode
+        bw = cv2.dilate(bw, kernel_dilate, iterations=1)# image dilation
+        # contour detection of frame
         (_, cnts, _) = cv2.findContours(bw.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # loop over the contours
         for c in cnts:
             # if the contour is too small, ignore it
             if cv2.contourArea(c) < config['min_area_motion_contour']:
                 continue
-            (x, y, w, h) = cv2.boundingRect(c)
-            cv2.rectangle(frame_out, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
+            (x, y, w, h) = cv2.boundingRect(c)#for moving vehicle, detects rectangle of moving object
+            cv2.rectangle(frame_out, (x, y), (x + w, y + h), (255, 0, 0), 2)# display rectangle of moving object
+    # parking status detection
     if config['parking_detection']:
-        for ind, park in enumerate(parking_data):
-            points = np.array(park['points'])
-            rect = parking_bounding_rects[ind]
-            roi_gray = frame_gray[rect[1]:(rect[1] + rect[3]),
+        for ind, park in enumerate(parking_data):# for each parking lot, check the parking status
+            points = np.array(park['points'])# four corners of each parking lot
+            rect = parking_bounding_rects[ind]# make rectangle with four corners
+            roi_gray = frame_gray[rect[1]:(rect[1] + rect[3]),# crop rectangle part
                        rect[0]:(rect[0] + rect[2])]  # crop roi for faster calcluation
-            laplacian = cv2.Laplacian(roi_gray, cv2.CV_64F)
+            laplacian = cv2.Laplacian(roi_gray, cv2.CV_64F)# apply laplacian operation
             points[:, 0] = points[:, 0] - rect[0]  # shift contour to roi
-            points[:, 1] = points[:, 1] - rect[1]
-            delta = np.mean(np.abs(laplacian * parking_mask[ind]))
+            points[:, 1] = points[:, 1] - rect[1]# shift contour to roi
+            delta = np.mean(np.abs(laplacian * parking_mask[ind]))# parameter for detectinog of parking statu
+            #  check parking is  or nots
             status = delta < config['park_laplacian_th']
             # If detected a change in parking status, save the current time
             if status != parking_status[ind] and parking_buffer[ind] == None:
@@ -140,8 +145,8 @@ while (cap.isOpened()):
                 # print("#%d: %.2f" % (ind, delta))
                 # print(parking_status)
 
-    if config['parking_overlay']:
-        available_num=0
+    if config['parking_overlay']:# checing parking status in real time
+        available_num=0# the number of availabile parking lot
         #htmlstr=''
         # f = open('Parking.html', 'w')
         # message = """<html>
@@ -149,33 +154,36 @@ while (cap.isOpened()):
         # <body>"""
         # # <p>Hello World!</p></body>
         # # </html>"""
-        for ind, park in enumerate(parking_data):
-            points = np.array(park['points'])
-            if parking_status[ind]:
-                color = (0, 255, 0)
-                available_num+=1
+        for ind, park in enumerate(parking_data):# counting the available parking lots
+            points = np.array(park['points'])# the corners of each parking
+            if parking_status[ind]:# check the parking status
+                color = (0, 255, 0)# the color of avaliable parking lot
+                available_num+=1# add one for avalaible paring number
                 #message+="""<p>spot """+str(ind)+""" is available!</p>"""
             else:
-                color = (0, 0, 255)
-            cx = int((points[0][0] + points[3][0]+points[1][0] + points[2][0]) / 4)
-            cy = int((points[0][1] + points[3][1]+points[1][1] + points[2][1]) / 4)
-            cv2.circle(frame_out, (cx, cy), 6, color, -1)
+                color = (0, 0, 255)# not available parking's color
+            cx = int((points[0][0] + points[3][0]+points[1][0] + points[2][0]) / 4)# center of x-axis in parking
+            cy = int((points[0][1] + points[3][1]+points[1][1] + points[2][1]) / 4)# center of y-axis in parking
+            cv2.circle(frame_out, (cx, cy), 6, color, -1)# draw cirlce fopr each parking
+            # draw rectanlge for each parking
             cv2.line(frame_out, (points[0][0], points[0][1]), (points[1][0], points[1][1]), (255, 255, 0), 2)
             cv2.line(frame_out, (points[1][0], points[1][1]), (points[2][0], points[2][1]), (255, 255, 0), 2)
             cv2.line(frame_out, (points[2][0], points[2][1]), (points[3][0], points[3][1]), (255, 255, 0), 2)
             # cv2.drawContours(frame_out, [points], contourIdx=-1,
             #                  color=color, thickness=2, lineType=cv2.LINE_8)
-            moments = cv2.moments(points)
-            centroid = (int(moments['m10'] / moments['m00']) - 3, int(moments['m01'] / moments['m00']) + 3)
-            cv2.putText(frame_out, str(park['id']), (centroid[0] + 1, centroid[1] + 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
-                        (255, 255, 255), 1, cv2.LINE_AA)
-            cv2.putText(frame_out, str(park['id']), (centroid[0] - 1, centroid[1] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
-                        (255, 255, 255), 1, cv2.LINE_AA)
-            cv2.putText(frame_out, str(park['id']), (centroid[0] + 1, centroid[1] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
-                        (255, 255, 255), 1, cv2.LINE_AA)
-            cv2.putText(frame_out, str(park['id']), (centroid[0] - 1, centroid[1] + 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
-                        (255, 255, 255), 1, cv2.LINE_AA)
-            cv2.putText(frame_out, str(park['id']), centroid, cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1, cv2.LINE_AA)
+            #
+            # moments = cv2.moments(points)
+            # centroid = (int(moments['m10'] / moments['m00']) - 3, int(moments['m01'] / moments['m00']) + 3)
+            # cv2.putText(frame_out, str(park['id']), (centroid[0] + 1, centroid[1] + 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+            #             (255, 255, 255), 1, cv2.LINE_AA)
+            # cv2.putText(frame_out, str(park['id']), (centroid[0] - 1, centroid[1] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+            #             (255, 255, 255), 1, cv2.LINE_AA)
+            # cv2.putText(frame_out, str(park['id']), (centroid[0] + 1, centroid[1] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+            #             (255, 255, 255), 1, cv2.LINE_AA)
+            # cv2.putText(frame_out, str(park['id']), (centroid[0] - 1, centroid[1] + 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+            #             (255, 255, 255), 1, cv2.LINE_AA)
+            # cv2.putText(frame_out, str(park['id']), centroid, cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1, cv2.LINE_AA)
+        # draw the available number on screen
         cv2.putText(frame_out, str(available_num)+' spots are available now.', (5, 30), cv2.FONT_HERSHEY_SIMPLEX,
                     0.6, (0, 255, 255), 2, cv2.LINE_AA)
         # message += """<p>""" + str(available_num) + """ spots are available!</p></body></html>"""
@@ -193,25 +201,20 @@ while (cap.isOpened()):
     # write the output frame
     if config['save_video']:
         if video_cur_frame % 35 == 0:  # take every 30 frames
-            out.write(frame_out)
+            out.write(frame_out)# write video
 
-            # Display video 
-    frame_out=np.zeros(frame_out.shape)
-    cv2.putText(frame_out, str(available_num) + ' spots are available now', (5, 230), cv2.FONT_HERSHEY_SIMPLEX,
-                1.3, (0, 255, 255), 5, cv2.LINE_AA)
-    frameout=cv2.resize(frame_out,(1600,900))# The frame is resized to display the counter of empty spots
-    cv2.imshow('frame', frameout)
-
+            # Display video
+    cv2.imshow('frame', frame_out)# display each frame
     # cv2.imshow('background mask', bw)
     k = cv2.waitKey(1)
-    if k == ord('q'):
+    if k == ord('q'):# if user click key 'q', program will be closed
         break
-    elif k == ord('c'):
+    elif k == ord('c'):# if user click key "c', frame can be saved in special file folder
         cv2.imwrite('frame%d.jpg' % video_cur_frame, frame_out)
-    elif k == ord('j'):
+    elif k == ord('j'):# if user click key'j', then jth frame will be jumped
         cap.set(cv2.CAP_PROP_POS_FRAMES, video_cur_frame + 10000)  # jump to frame
 
-cap.release()
-if config['save_video']: out.release()
-cv2.destroyAllWindows()
+cap.release()# release camera
+if config['save_video']: out.release()# save captured video
+cv2.destroyAllWindows()# release screen
 
