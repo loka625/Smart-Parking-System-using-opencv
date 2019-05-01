@@ -1,0 +1,16 @@
+I would suggest loading all data from CSV or EXCEL into a data table and then doing the validation
+
+Create a reusable component called validate.xml
+
+Input Params:
+
+                In_RowNumber                            Integer Default to 1
+                In_ColumnNumber                         Integer
+                In_FullFilePath                         String
+                In_CompareValue                         String    
+                out_DataCheck                           Bool
+
+
+If In_CompareValue=Row(In_RowNumber  ).Column(In_ ColumnNumber) Then out_DataCheck =True
+Else
+out_DataCheck =False
